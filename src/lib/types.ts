@@ -84,6 +84,8 @@ export type ProfileAppearance = {
   profile_key: 'Kamu' | 'Pacar';
   bg_type: 'preset' | 'custom';
   bg_value: string;
+  accent_color?: string | null;
+  accent_color_secondary?: string | null;
   avatar_url?: string | null;
   overlay_opacity: number;
   blur_amount: number;

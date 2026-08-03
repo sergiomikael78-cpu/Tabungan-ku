@@ -8,6 +8,17 @@ import AddTransactionModal from '@/components/AddTransactionModal';
 import LoginPage from '@/app/login/LoginPage';
 import ProfileSelectPage from '@/app/profile-select/ProfileSelectPage';
 
+function getDeterministicAnimClass(bgUrl: string): string {
+  let hash = 0;
+  for (let i = 0; i < bgUrl.length; i++) {
+    hash = (hash << 5) - hash + bgUrl.charCodeAt(i);
+    hash |= 0;
+  }
+  const index = Math.abs(hash) % 4;
+  const variants = ['bg-anim-ken-burns', 'bg-anim-drift-h', 'bg-anim-pulse', 'bg-anim-drift-v'];
+  return variants[index];
+}
+
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const { session, isLoading: authLoading } = useAuth();
   const { activeProfile, currentAppearance } = useProfile();
@@ -51,12 +62,22 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const bgImage = currentAppearance?.bg_value || '/backgrounds/preset-01.webp';
   const overlayOpacity = currentAppearance?.overlay_opacity ?? 0.40;
   const blurAmount = currentAppearance?.blur_amount ?? 12;
+  const accentColor = currentAppearance?.accent_color || '#10b981';
+  const accentColorSecondary = currentAppearance?.accent_color_secondary || '#047857';
+
+  const animClass = getDeterministicAnimClass(bgImage);
+
+  React.useEffect(() => {
+    document.documentElement.style.setProperty('--card-blur', `${blurAmount}px`);
+    document.documentElement.style.setProperty('--dynamic-accent', accentColor);
+    document.documentElement.style.setProperty('--dynamic-accent-secondary', accentColorSecondary);
+  }, [blurAmount, accentColor, accentColorSecondary]);
 
   return (
     <>
-      {/* Dynamic Background Layer per Profile */}
+      {/* Dynamic Background Layer per Profile (Sharp & Crisp with GPU Animation) */}
       <div
-        className="app-bg-fixed"
+        className={`app-bg-fixed ${animClass}`}
         style={{
           backgroundImage: `url('${bgImage}')`,
           backgroundSize: 'cover',
@@ -68,17 +89,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           transition: 'background-image 0.4s ease-in-out',
         }}
       />
-      {/* Dynamic Overlay & Blur Layer */}
+      {/* Scrim Dark Gradient Overlay Layer (Base contrast, NO BLUR) */}
       <div
         className="app-overlay-fixed"
         style={{
-          backgroundColor: `rgba(10, 15, 13, ${overlayOpacity})`,
-          backdropFilter: `blur(${blurAmount}px)`,
-          WebkitBackdropFilter: `blur(${blurAmount}px)`,
+          background: `linear-gradient(180deg, rgba(10, 15, 13, ${overlayOpacity * 0.35}) 0%, rgba(10, 15, 13, ${overlayOpacity * 0.75}) 100%)`,
           position: 'fixed',
           inset: 0,
           zIndex: -1,
-          transition: 'background-color 0.3s ease, backdrop-filter 0.3s ease',
+          transition: 'background 0.3s ease',
         }}
       />
       <div key={refreshKey}>

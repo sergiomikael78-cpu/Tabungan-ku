@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import type { ProfileAppearance } from '@/lib/types';
+import { extractColorsFromImageUrl } from '@/lib/colorExtractor';
 
 type ProfileName = 'Kamu' | 'Pacar';
 
@@ -189,6 +190,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
                   profile_key: row.profile_key,
                   bg_type: row.bg_type || 'preset',
                   bg_value: row.bg_value || '/backgrounds/preset-01.webp',
+                  accent_color: row.accent_color || null,
+                  accent_color_secondary: row.accent_color_secondary || null,
                   avatar_url: row.avatar_url || null,
                   overlay_opacity: row.overlay_opacity ?? 0.40,
                   blur_amount: row.blur_amount ?? 12,
@@ -249,6 +252,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
                 profile_key: newRow.profile_key,
                 bg_type: newRow.bg_type || 'preset',
                 bg_value: newRow.bg_value || '/backgrounds/preset-01.webp',
+                accent_color: newRow.accent_color || null,
+                accent_color_secondary: newRow.accent_color_secondary || null,
                 avatar_url: newRow.avatar_url || null,
                 overlay_opacity: newRow.overlay_opacity ?? 0.40,
                 blur_amount: newRow.blur_amount ?? 12,
@@ -371,11 +376,16 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       const now = new Date().toISOString();
       const current = appearances[activeProfile] || DEFAULT_APPEARANCE[activeProfile];
 
+      // Extract safe adaptive accent colors
+      const extracted = await extractColorsFromImageUrl(presetUrl);
+
       const payload = {
         user_id: user.id,
         profile_key: activeProfile,
         bg_type: 'preset' as const,
         bg_value: presetUrl,
+        accent_color: extracted.accentColor,
+        accent_color_secondary: extracted.accentColorSecondary,
         avatar_url: current.avatar_url || null,
         overlay_opacity: current.overlay_opacity ?? 0.40,
         blur_amount: current.blur_amount ?? 12,
@@ -444,11 +454,16 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       const now = new Date().toISOString();
       const current = appearances[activeProfile] || DEFAULT_APPEARANCE[activeProfile];
 
+      // Extract safe adaptive accent colors
+      const extracted = await extractColorsFromImageUrl(publicUrl);
+
       const payload = {
         user_id: user.id,
         profile_key: activeProfile,
         bg_type: 'custom' as const,
         bg_value: publicUrl,
+        accent_color: extracted.accentColor,
+        accent_color_secondary: extracted.accentColorSecondary,
         avatar_url: current.avatar_url || null,
         overlay_opacity: current.overlay_opacity ?? 0.40,
         blur_amount: current.blur_amount ?? 12,

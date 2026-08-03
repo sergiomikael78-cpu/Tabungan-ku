@@ -1,6 +1,9 @@
 @import "tailwindcss";
 
 :root {
+  --dynamic-accent: #10b981;
+  --dynamic-accent-secondary: #047857;
+
   /* Dark Green Fintech Theme */
   --bg-primary: #0a0f0d;
   --bg-secondary: #111a16;
@@ -20,7 +23,7 @@
   --green-800: #2e7d32;
   --green-900: #1b5e20;
   
-  --accent-emerald: #10b981;
+  --accent-emerald: var(--dynamic-accent, #10b981);
   --accent-teal: #14b8a6;
   --accent-lime: #84cc16;
   --accent-cyan: #06b6d4;
@@ -28,7 +31,7 @@
   --text-primary: #f0fdf4;
   --text-secondary: #a7c4b8;
   --text-muted: #6b8f7f;
-  --text-accent: #34d399;
+  --text-accent: var(--dynamic-accent, #34d399);
   
   --border-default: #1e352e;
   --border-light: #264038;
@@ -41,8 +44,8 @@
   --yellow-900: #422006;
   --blue-400: #60a5fa;
   
-  --gradient-green: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
-  --gradient-emerald: linear-gradient(135deg, #065f46 0%, #064e3b 100%);
+  --gradient-green: linear-gradient(135deg, var(--dynamic-accent, #10b981) 0%, var(--dynamic-accent-secondary, #047857) 100%);
+  --gradient-emerald: linear-gradient(135deg, var(--dynamic-accent-secondary, #065f46) 0%, #064e3b 100%);
   --gradient-card: linear-gradient(145deg, rgba(16,185,129,0.08) 0%, rgba(6,78,59,0.15) 100%);
   --gradient-glow: radial-gradient(ellipse at 50% 0%, rgba(16,185,129,0.15) 0%, transparent 70%);
   
@@ -97,16 +100,17 @@ body {
 
 /* Glass Card */
 .glass-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-default);
+  background: rgba(22, 36, 32, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--radius-lg);
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(var(--card-blur, 12px));
+  -webkit-backdrop-filter: blur(var(--card-blur, 12px));
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .glass-card:hover {
-  background: var(--bg-card-hover);
-  border-color: var(--border-light);
+  background: rgba(26, 46, 40, 0.82);
+  border-color: rgba(255, 255, 255, 0.2);
   box-shadow: var(--shadow-glow);
 }
 
@@ -2156,5 +2160,96 @@ select.chip.active {
   
   .page-container {
     padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* ================================
+   BACKGROUND ANIMATION KEYFRAMES (TAHAP E)
+   ================================ */
+
+/* 1. Ken Burns Zoom */
+@keyframes bgKenBurns {
+  0% {
+    transform: scale(1) translate(0%, 0%);
+  }
+  50% {
+    transform: scale(1.08) translate(-1.5%, -1%);
+  }
+  100% {
+    transform: scale(1) translate(0%, 0%);
+  }
+}
+
+/* 2. Horizontal Drift */
+@keyframes bgDriftHorizontal {
+  0% {
+    transform: scale(1.06) translateX(0%);
+  }
+  50% {
+    transform: scale(1.06) translateX(-2.5%);
+  }
+  100% {
+    transform: scale(1.06) translateX(0%);
+  }
+}
+
+/* 3. Pulse Glow */
+@keyframes bgPulseGlow {
+  0% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  50% {
+    transform: scale(1.04);
+    filter: brightness(1.06);
+  }
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+}
+
+/* 4. Vertical Parallax Drift */
+@keyframes bgDriftVertical {
+  0% {
+    transform: scale(1.05) translateY(0%);
+  }
+  50% {
+    transform: scale(1.05) translateY(-2%);
+  }
+  100% {
+    transform: scale(1.05) translateY(0%);
+  }
+}
+
+/* Animation Classes */
+.bg-anim-ken-burns {
+  animation: bgKenBurns 28s ease-in-out infinite;
+  will-change: transform;
+}
+
+.bg-anim-drift-h {
+  animation: bgDriftHorizontal 32s ease-in-out infinite;
+  will-change: transform;
+}
+
+.bg-anim-pulse {
+  animation: bgPulseGlow 24s ease-in-out infinite;
+  will-change: transform, filter;
+}
+
+.bg-anim-drift-v {
+  animation: bgDriftVertical 30s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .bg-anim-ken-burns,
+  .bg-anim-drift-h,
+  .bg-anim-pulse,
+  .bg-anim-drift-v {
+    animation: none !important;
+    transform: none !important;
   }
 }

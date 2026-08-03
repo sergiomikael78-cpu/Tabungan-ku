@@ -59,8 +59,8 @@ export default function ChartWidget({ data, title = 'Tren Saldo' }: ChartWidgetP
         <AreaChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
           <defs>
             <linearGradient id="balanceGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#10b981" stopOpacity={0.35} />
-              <stop offset="100%" stopColor="#10b981" stopOpacity={0.02} />
+              <stop offset="0%" stopColor="var(--dynamic-accent, #10b981)" stopOpacity={0.35} />
+              <stop offset="100%" stopColor="var(--dynamic-accent, #10b981)" stopOpacity={0.02} />
             </linearGradient>
           </defs>
           <CartesianGrid 
@@ -88,11 +88,11 @@ export default function ChartWidget({ data, title = 'Tren Saldo' }: ChartWidgetP
           <Area
             type="monotone"
             dataKey="balance"
-            stroke="#10b981"
+            stroke="var(--dynamic-accent, #10b981)"
             strokeWidth={2.5}
             fill="url(#balanceGradient)"
             dot={false}
-            activeDot={{ r: 5, fill: '#10b981', strokeWidth: 2, stroke: 'var(--bg-card)' }}
+            activeDot={{ r: 5, fill: 'var(--dynamic-accent, #10b981)', strokeWidth: 2, stroke: 'var(--bg-card)' }}
           />
         </AreaChart>
       </ResponsiveContainer>
