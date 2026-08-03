@@ -10,7 +10,7 @@ import ProfileSelectPage from '@/app/profile-select/ProfileSelectPage';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const { session, isLoading: authLoading } = useAuth();
-  const { activeProfile } = useProfile();
+  const { activeProfile, currentAppearance } = useProfile();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -48,8 +48,39 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     window.dispatchEvent(new CustomEvent('transaction-update'));
   };
 
+  const bgImage = currentAppearance?.bg_value || '/backgrounds/preset-01.webp';
+  const overlayOpacity = currentAppearance?.overlay_opacity ?? 0.40;
+  const blurAmount = currentAppearance?.blur_amount ?? 12;
+
   return (
     <>
+      {/* Dynamic Background Layer per Profile */}
+      <div
+        className="app-bg-fixed"
+        style={{
+          backgroundImage: `url('${bgImage}')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          position: 'fixed',
+          inset: 0,
+          zIndex: -2,
+          transition: 'background-image 0.4s ease-in-out',
+        }}
+      />
+      {/* Dynamic Overlay & Blur Layer */}
+      <div
+        className="app-overlay-fixed"
+        style={{
+          backgroundColor: `rgba(10, 15, 13, ${overlayOpacity})`,
+          backdropFilter: `blur(${blurAmount}px)`,
+          WebkitBackdropFilter: `blur(${blurAmount}px)`,
+          position: 'fixed',
+          inset: 0,
+          zIndex: -1,
+          transition: 'background-color 0.3s ease, backdrop-filter 0.3s ease',
+        }}
+      />
       <div key={refreshKey}>
         {children}
       </div>

@@ -68,6 +68,20 @@ CREATE TABLE IF NOT EXISTS profile_settings (
   PRIMARY KEY (user_id, profile_key)
 );
 
+-- 6. Profile Appearance Table (Personalisasi Visual Background & Avatar per Profil)
+CREATE TABLE IF NOT EXISTS profile_appearance (
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  profile_key TEXT NOT NULL CHECK (profile_key IN ('Kamu', 'Pacar')),
+  bg_type TEXT NOT NULL DEFAULT 'preset' CHECK (bg_type IN ('preset', 'custom')),
+  bg_value TEXT NOT NULL DEFAULT '/backgrounds/preset-01.webp',
+  avatar_url TEXT DEFAULT NULL,
+  overlay_opacity NUMERIC(3,2) NOT NULL DEFAULT 0.40 CHECK (overlay_opacity >= 0.0 AND overlay_opacity <= 0.9),
+  blur_amount INTEGER NOT NULL DEFAULT 12 CHECK (blur_amount >= 0 AND blur_amount <= 30),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, profile_key)
+);
+
 
 -- ============================================
 -- Row Level Security (RLS)
@@ -79,6 +93,7 @@ ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE receivables ENABLE ROW LEVEL SECURITY;
 ALTER TABLE receivable_payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE profile_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE profile_appearance ENABLE ROW LEVEL SECURITY;
 
 
 -- Bank Accounts policies
@@ -208,6 +223,27 @@ CREATE POLICY "Users can update own profile settings"
 DROP POLICY IF EXISTS "Users can delete own profile settings" ON profile_settings;
 CREATE POLICY "Users can delete own profile settings"
   ON profile_settings FOR DELETE
+  USING (auth.uid() = user_id);
+
+-- Profile Appearance policies
+DROP POLICY IF EXISTS "Users can view own profile appearance" ON profile_appearance;
+CREATE POLICY "Users can view own profile appearance"
+  ON profile_appearance FOR SELECT
+  USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can insert own profile appearance" ON profile_appearance;
+CREATE POLICY "Users can insert own profile appearance"
+  ON profile_appearance FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update own profile appearance" ON profile_appearance;
+CREATE POLICY "Users can update own profile appearance"
+  ON profile_appearance FOR UPDATE
+  USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete own profile appearance" ON profile_appearance;
+CREATE POLICY "Users can delete own profile appearance"
+  ON profile_appearance FOR DELETE
   USING (auth.uid() = user_id);
 
 
@@ -378,6 +414,12 @@ BEGIN
 EXCEPTION WHEN OTHERS THEN NULL;
 END $$;
 
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE profile_appearance;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
 
 -- ============================================
 -- Indexes for performance
@@ -389,3 +431,31 @@ CREATE INDEX IF NOT EXISTS idx_transactions_type ON transactions(type);
 CREATE INDEX IF NOT EXISTS idx_receivables_status ON receivables(status);
 CREATE INDEX IF NOT EXISTS idx_receivables_bank ON receivables(bank_account_id);
 CREATE INDEX IF NOT EXISTS idx_receivable_payments_receivable ON receivable_payments(receivable_id);
+
+-- ============================================
+-- Storage Bucket Setup for Profile Assets
+-- ============================================
+
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('profile-assets', 'profile-assets', true)
+ON CONFLICT (id) DO NOTHING;
+
+DROP POLICY IF EXISTS "Public read profile-assets" ON storage.objects;
+CREATE POLICY "Public read profile-assets"
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'profile-assets');
+
+DROP POLICY IF EXISTS "User upload profile-assets" ON storage.objects;
+CREATE POLICY "User upload profile-assets"
+  ON storage.objects FOR INSERT
+  WITH CHECK (bucket_id = 'profile-assets' AND auth.uid() IS NOT NULL);
+
+DROP POLICY IF EXISTS "User update profile-assets" ON storage.objects;
+CREATE POLICY "User update profile-assets"
+  ON storage.objects FOR UPDATE
+  USING (bucket_id = 'profile-assets' AND auth.uid() IS NOT NULL);
+
+DROP POLICY IF EXISTS "User delete profile-assets" ON storage.objects;
+CREATE POLICY "User delete profile-assets"
+  ON storage.objects FOR DELETE
+  USING (bucket_id = 'profile-assets' AND auth.uid() IS NOT NULL);

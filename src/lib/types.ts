@@ -79,3 +79,15 @@ export type ProfileSetting = {
   updated_at?: string;
 };
 
+export type ProfileAppearance = {
+  user_id: string;
+  profile_key: 'Kamu' | 'Pacar';
+  bg_type: 'preset' | 'custom';
+  bg_value: string;
+  avatar_url?: string | null;
+  overlay_opacity: number;
+  blur_amount: number;
+  created_at?: string;
+  updated_at?: string;
+};
+

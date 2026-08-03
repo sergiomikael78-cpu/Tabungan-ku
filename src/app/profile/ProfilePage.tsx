@@ -1,15 +1,31 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useProfile } from '@/context/ProfileContext';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
 import { supabase } from '@/lib/supabase';
-import { User, RefreshCw, Lock, LogOut, Download, ChevronRight, Loader2, Edit3 } from 'lucide-react';
+import { RefreshCw, LogOut, Lock, Download, Edit3, ChevronRight, Palette, Check, Loader2, Camera, Upload, Trash2, Sliders, RotateCcw, Eye } from 'lucide-react';
+import Image from 'next/image';
 import ConfirmDialog from '@/components/ConfirmDialog';
 
 export default function ProfilePage() {
-  const { activeProfile, profileEmoji, setActiveProfile, clearProfile, displayNames, getDisplayName, updateDisplayNames } = useProfile();
+  const {
+    activeProfile,
+    profileEmoji,
+    setActiveProfile,
+    clearProfile,
+    displayNames,
+    getDisplayName,
+    updateDisplayNames,
+    currentAppearance,
+    updateAppearancePreset,
+    uploadCustomBackground,
+    uploadCustomAvatar,
+    removeCustomAvatar,
+    updateAppearanceEffects,
+    setLocalAppearanceEffects,
+  } = useProfile();
   const { signOut, user } = useAuth();
   const { showToast } = useToast();
 
@@ -24,12 +40,33 @@ export default function ProfilePage() {
   const [namePacar, setNamePacar] = useState('');
   const [isSavingNames, setIsSavingNames] = useState(false);
 
+  const [showPresetModal, setShowPresetModal] = useState(false);
+  const [selectedPreset, setSelectedPreset] = useState(currentAppearance?.bg_value || '/backgrounds/preset-01.webp');
+  const [isSavingPreset, setIsSavingPreset] = useState(false);
+  const [isUploadingBg, setIsUploadingBg] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+
+  const [opacityVal, setOpacityVal] = useState<number>(currentAppearance?.overlay_opacity ?? 0.40);
+  const [blurVal, setBlurVal] = useState<number>(currentAppearance?.blur_amount ?? 12);
+  const [isSavingEffects, setIsSavingEffects] = useState(false);
+
+  const bgFileInputRef = useRef<HTMLInputElement>(null);
+  const avatarFileInputRef = useRef<HTMLInputElement>(null);
+
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   useEffect(() => {
     setNameKamu(displayNames.Kamu);
     setNamePacar(displayNames.Pacar);
   }, [displayNames]);
+
+  useEffect(() => {
+    if (currentAppearance) {
+      setSelectedPreset(currentAppearance.bg_value || '/backgrounds/preset-01.webp');
+      setOpacityVal(currentAppearance.overlay_opacity ?? 0.40);
+      setBlurVal(currentAppearance.blur_amount ?? 12);
+    }
+  }, [currentAppearance]);
 
   useEffect(() => {
     const handler = (e: any) => {
@@ -108,7 +145,90 @@ export default function ProfilePage() {
 
   const currentActiveName = activeProfile ? getDisplayName(activeProfile) : '';
 
+  const PRESET_LIST = Array.from({ length: 14 }, (_, idx) => {
+    const num = String(idx + 1).padStart(2, '0');
+    return `/backgrounds/preset-${num}.webp`;
+  });
+
+  const handleOpacityChange = (newVal: number) => {
+    setOpacityVal(newVal);
+    setLocalAppearanceEffects(newVal, blurVal);
+  };
+
+  const handleBlurChange = (newVal: number) => {
+    setBlurVal(newVal);
+    setLocalAppearanceEffects(opacityVal, newVal);
+  };
+
+  const handleSavePreset = async () => {
+    setIsSavingPreset(true);
+    const okPreset = await updateAppearancePreset(selectedPreset);
+    const okEffects = await updateAppearanceEffects(opacityVal, blurVal);
+    if (okPreset && okEffects) {
+      showToast(`Personalisasi profil ${currentActiveName} berhasil disimpan!`, 'success');
+      setShowPresetModal(false);
+    } else {
+      showToast('Gagal menyimpan personalisasi', 'error');
+    }
+    setIsSavingPreset(false);
+  };
+
+  const handleResetEffects = () => {
+    handleOpacityChange(0.40);
+    handleBlurChange(12);
+  };
+
+  const handleCustomBgUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingBg(true);
+    const res = await uploadCustomBackground(file);
+    if (res.success && res.url) {
+      setSelectedPreset(res.url);
+      showToast('Background kustom berhasil diupload!', 'success');
+      setShowPresetModal(false);
+    } else {
+      showToast(res.error || 'Gagal mengupload background kustom', 'error');
+    }
+    setIsUploadingBg(false);
+    if (bgFileInputRef.current) bgFileInputRef.current.value = '';
+  };
+
+  const handleCustomAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingAvatar(true);
+    const res = await uploadCustomAvatar(file);
+    if (res.success) {
+      showToast(`Avatar profil ${currentActiveName} berhasil diperbarui!`, 'success');
+    } else {
+      showToast(res.error || 'Gagal mengupload avatar', 'error');
+    }
+    setIsUploadingAvatar(false);
+    if (avatarFileInputRef.current) avatarFileInputRef.current.value = '';
+  };
+
+  const handleRemoveAvatar = async () => {
+    const ok = await removeCustomAvatar();
+    if (ok) {
+      showToast('Avatar kustom dihapus (kembali ke emoji)', 'info');
+    } else {
+      showToast('Gagal menghapus avatar', 'error');
+    }
+  };
+
   const menuItems = [
+    {
+      icon: <Palette size={18} />,
+      label: 'Personalisasi Background',
+      desc: `Preset aktif: ${currentAppearance?.bg_value?.split('/')?.pop() || 'preset-01.webp'}`,
+      onClick: () => {
+        setSelectedPreset(currentAppearance?.bg_value || '/backgrounds/preset-01.webp');
+        setShowPresetModal(true);
+      },
+    },
     {
       icon: <Edit3 size={18} />,
       label: 'Nama Tampilan Profil',
@@ -141,14 +261,84 @@ export default function ProfilePage() {
         <h1 style={{ fontSize: '20px', fontWeight: 700 }}>Profil & Pengaturan</h1>
       </div>
 
+      {/* Hidden File Inputs */}
+      <input
+        type="file"
+        ref={bgFileInputRef}
+        onChange={handleCustomBgUpload}
+        accept="image/png, image/jpeg, image/webp"
+        style={{ display: 'none' }}
+      />
+      <input
+        type="file"
+        ref={avatarFileInputRef}
+        onChange={handleCustomAvatarUpload}
+        accept="image/png, image/jpeg, image/webp"
+        style={{ display: 'none' }}
+      />
+
       {/* Profile Card */}
       <div style={{ padding: '16px' }}>
-        <div className="glass-card profile-hero">
-          <div className="profile-avatar-lg">
-            {profileEmoji}
+        <div className="glass-card profile-hero" style={{ position: 'relative' }}>
+          <div style={{ position: 'relative' }}>
+            <div className="profile-avatar-lg" style={{ overflow: 'hidden', position: 'relative' }}>
+              {currentAppearance?.avatar_url ? (
+                <Image
+                  src={currentAppearance.avatar_url}
+                  alt="Avatar Profil"
+                  fill
+                  sizes="80px"
+                  style={{ objectFit: 'cover' }}
+                  unoptimized
+                />
+              ) : (
+                profileEmoji
+              )}
+            </div>
+            <button
+              onClick={() => avatarFileInputRef.current?.click()}
+              disabled={isUploadingAvatar}
+              style={{
+                position: 'absolute',
+                bottom: '-4px',
+                right: '-4px',
+                width: '28px',
+                height: '28px',
+                borderRadius: '50%',
+                background: 'var(--accent-emerald)',
+                color: '#fff',
+                border: '2px solid var(--bg-card)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+              }}
+              title="Ubah Foto Avatar"
+            >
+              {isUploadingAvatar ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Camera size={14} />}
+            </button>
           </div>
+
           <div className="profile-info">
-            <p className="profile-name">{currentActiveName}</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <p className="profile-name">{currentActiveName}</p>
+              {currentAppearance?.avatar_url && (
+                <button
+                  onClick={handleRemoveAvatar}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--text-muted)',
+                    cursor: 'pointer',
+                    padding: '2px',
+                  }}
+                  title="Hapus foto avatar (kembali ke emoji)"
+                >
+                  <Trash2 size={14} />
+                </button>
+              )}
+            </div>
             <p className="profile-email">
               {user?.email}
             </p>
@@ -240,6 +430,203 @@ export default function ProfilePage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Ubah Background Preset */}
+      {showPresetModal && (
+        <div className="modal-backdrop" onClick={() => setShowPresetModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px', maxHeight: '85vh', overflowY: 'auto' }}>
+            <div className="modal-handle" />
+            <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '4px' }}>🖼️ Galeri Background Preset</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                Pilih tema preset atau upload foto Anda sendiri (tersimpan terpisah per profil).
+              </p>
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-full"
+                onClick={() => bgFileInputRef.current?.click()}
+                disabled={isUploadingBg}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', borderStyle: 'dashed' }}
+              >
+                {isUploadingBg ? (
+                  <>
+                    <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                    Mengupload Foto...
+                  </>
+                ) : (
+                  <>
+                    <Upload size={16} />
+                    Upload Foto Background Sendiri (Max 5MB)
+                  </>
+                )}
+              </button>
+            </div>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: '12px',
+              marginBottom: '20px',
+            }}>
+              {PRESET_LIST.map((presetPath, idx) => {
+                const isSelected = selectedPreset === presetPath;
+                return (
+                  <div
+                    key={presetPath}
+                    onClick={() => setSelectedPreset(presetPath)}
+                    style={{
+                      position: 'relative',
+                      aspectRatio: '16/9',
+                      borderRadius: 'var(--radius-md)',
+                      overflow: 'hidden',
+                      cursor: 'pointer',
+                      border: isSelected ? '2px solid var(--accent-emerald)' : '1px solid var(--border-light)',
+                      boxShadow: isSelected ? '0 0 12px rgba(16, 185, 129, 0.4)' : 'none',
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    <Image
+                      src={presetPath}
+                      alt={`Preset ${idx + 1}`}
+                      fill
+                      sizes="200px"
+                      style={{ objectFit: 'cover' }}
+                    />
+                    <div style={{
+                      position: 'absolute',
+                      inset: 0,
+                      background: isSelected ? 'rgba(16, 185, 129, 0.2)' : 'rgba(0, 0, 0, 0.35)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}>
+                      {isSelected && (
+                        <div style={{
+                          width: '28px',
+                          height: '28px',
+                          borderRadius: '50%',
+                          background: 'var(--accent-emerald)',
+                          color: '#fff',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.4)'
+                        }}>
+                          <Check size={16} />
+                        </div>
+                      )}
+                    </div>
+                    <span style={{
+                      position: 'absolute',
+                      bottom: '6px',
+                      left: '8px',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      color: '#fff',
+                      textShadow: '0 1px 3px rgba(0,0,0,0.8)'
+                    }}>
+                      Preset {idx + 1}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Sliders Pengaturan Blur & Kontras Overlay */}
+            <div style={{
+              background: 'rgba(0, 0, 0, 0.25)',
+              borderRadius: 'var(--radius-md)',
+              padding: '14px',
+              border: '1px solid var(--border-light)',
+              marginBottom: '20px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '14px',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Sliders size={16} style={{ color: 'var(--accent-emerald)' }} />
+                  <span style={{ fontSize: '14px', fontWeight: 600 }}>Pengaturan Blur & Kontras</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleResetEffects}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--text-muted)',
+                    fontSize: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <RotateCcw size={12} /> Reset (Default)
+                </button>
+              </div>
+
+              {/* Slider 1: Opacity Overlay */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '6px' }}>
+                  <span>Kegelapan Overlay Teks (WCAG AA)</span>
+                  <strong style={{ color: 'var(--accent-emerald)' }}>{Math.round(opacityVal * 100)}%</strong>
+                </div>
+                <input
+                  type="range"
+                  min="0.0"
+                  max="0.9"
+                  step="0.05"
+                  value={opacityVal}
+                  onChange={(e) => handleOpacityChange(parseFloat(e.target.value))}
+                  style={{ width: '100%', accentColor: 'var(--accent-emerald)', cursor: 'pointer' }}
+                />
+              </div>
+
+              {/* Slider 2: Blur Amount */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '6px' }}>
+                  <span>Intensitas Blur Glassmorphism</span>
+                  <strong style={{ color: 'var(--accent-emerald)' }}>{blurVal}px</strong>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="30"
+                  step="1"
+                  value={blurVal}
+                  onChange={(e) => handleBlurChange(parseInt(e.target.value, 10))}
+                  style={{ width: '100%', accentColor: 'var(--accent-emerald)', cursor: 'pointer' }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ flex: 1 }}
+                onClick={() => setShowPresetModal(false)}
+                disabled={isSavingPreset}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                style={{ flex: 1 }}
+                onClick={handleSavePreset}
+                disabled={isSavingPreset}
+              >
+                {isSavingPreset ? 'Menyimpan...' : 'Simpan Background'}
+              </button>
+            </div>
           </div>
         </div>
       )}
