@@ -240,8 +240,9 @@ export default function ReceivableDetailPage() {
   const isOverdue = daysUntil !== null && daysUntil < 0 && receivable.status !== 'LUNAS';
 
   return (
-    <PullToRefresh onRefresh={loadData}>
-      <div className="page-container">
+    <>
+      <PullToRefresh onRefresh={loadData}>
+        <div className="page-container">
       <div className="detail-header">
         <Link href="/receivables" className="detail-back-btn" style={{ textDecoration: 'none' }}>
           <ArrowLeft size={20} />
@@ -381,6 +382,15 @@ export default function ReceivableDetailPage() {
         </div>
       </div>
 
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+        </div>
+      </PullToRefresh>
+
       {/* Payment Form Modal */}
       {showPayForm && (
         <div className="modal-backdrop" onClick={() => setShowPayForm(false)}>
@@ -416,9 +426,9 @@ export default function ReceivableDetailPage() {
                 >
                   <option value="">Pilih rekening bank</option>
                   {banks.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.icon_emoji} {b.bank_name}
-                    </option>
+                     <option key={b.id} value={b.id}>
+                       {b.icon_emoji} {b.bank_name}
+                     </option>
                   ))}
                 </select>
               </div>
@@ -541,14 +551,6 @@ export default function ReceivableDetailPage() {
           onCancel={() => setShowConfirmDelete(false)}
         />
       )}
-
-      <style>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
-    </div>
-    </PullToRefresh>
+    </>
   );
 }

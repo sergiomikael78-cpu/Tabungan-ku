@@ -159,8 +159,9 @@ export default function BanksPage() {
   };
 
   return (
-    <PullToRefresh onRefresh={loadBanks}>
-      <div className="page-container">
+    <>
+      <PullToRefresh onRefresh={loadBanks}>
+        <div className="page-container">
       <div className="page-header">
         <h1 style={{ fontSize: '20px', fontWeight: 700, flex: 1 }}>Rekening Bank</h1>
         <button
@@ -224,6 +225,15 @@ export default function BanksPage() {
           </div>
         )}
       </div>
+
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+        </div>
+      </PullToRefresh>
 
       {/* Add/Edit Form Modal */}
       {showForm && (
@@ -312,14 +322,6 @@ export default function BanksPage() {
         onConfirm={handleArchive}
         onCancel={() => setConfirmArchive(null)}
       />
-
-      <style>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
-    </div>
-    </PullToRefresh>
+    </>
   );
 }
