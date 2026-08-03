@@ -25,6 +25,19 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
+  const bgImage = currentAppearance?.bg_value || '/backgrounds/preset-01.webp';
+  const overlayOpacity = currentAppearance?.overlay_opacity ?? 0.40;
+  const blurAmount = currentAppearance?.blur_amount ?? 12;
+  const accentColor = currentAppearance?.accent_color || '#10b981';
+  const accentColorSecondary = currentAppearance?.accent_color_secondary || '#047857';
+
+  // Call hooks unconditionally at top level (Rules of Hooks)
+  React.useEffect(() => {
+    document.documentElement.style.setProperty('--card-blur', `${blurAmount}px`);
+    document.documentElement.style.setProperty('--dynamic-accent', accentColor);
+    document.documentElement.style.setProperty('--dynamic-accent-secondary', accentColorSecondary);
+  }, [blurAmount, accentColor, accentColorSecondary]);
+
   // Loading splash
   if (authLoading) {
     return (
@@ -59,19 +72,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     window.dispatchEvent(new CustomEvent('transaction-update'));
   };
 
-  const bgImage = currentAppearance?.bg_value || '/backgrounds/preset-01.webp';
-  const overlayOpacity = currentAppearance?.overlay_opacity ?? 0.40;
-  const blurAmount = currentAppearance?.blur_amount ?? 12;
-  const accentColor = currentAppearance?.accent_color || '#10b981';
-  const accentColorSecondary = currentAppearance?.accent_color_secondary || '#047857';
-
   const animClass = getDeterministicAnimClass(bgImage);
-
-  React.useEffect(() => {
-    document.documentElement.style.setProperty('--card-blur', `${blurAmount}px`);
-    document.documentElement.style.setProperty('--dynamic-accent', accentColor);
-    document.documentElement.style.setProperty('--dynamic-accent-secondary', accentColorSecondary);
-  }, [blurAmount, accentColor, accentColorSecondary]);
 
   return (
     <>
