@@ -41,6 +41,7 @@ export default function AddTransactionModal({ isOpen, onClose, onSuccess, defaul
 
   useEffect(() => {
     if (isOpen) {
+      document.body.style.overflow = 'hidden';
       loadBanks();
       if (editingTransaction) {
         setTxType(editingTransaction.type || 'SETOR');
@@ -61,7 +62,13 @@ export default function AddTransactionModal({ isOpen, onClose, onSuccess, defaul
       }
       setBankBalance(null);
       setShowNegativeWarning(false);
+    } else {
+      document.body.style.overflow = '';
     }
+
+    return () => {
+      document.body.style.overflow = '';
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, defaultType, editingTransaction]);
 
