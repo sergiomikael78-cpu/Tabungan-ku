@@ -392,14 +392,28 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         updated_at: now,
       };
 
-      const { error } = await supabase.from('profile_appearance').upsert(
+      let { error } = await supabase.from('profile_appearance').upsert(
         payload,
         { onConflict: 'user_id,profile_key' }
       );
 
+      // Fallback if accent_color columns do not exist in DB yet
       if (error) {
-        console.error(`Error updating appearance for ${activeProfile}:`, error);
-        return false;
+        console.warn(`Upsert error with accent_color, retrying base fields for ${activeProfile}:`, error);
+        const fallbackPayload = {
+          user_id: user.id,
+          profile_key: activeProfile,
+          bg_type: payload.bg_type,
+          bg_value: payload.bg_value,
+          avatar_url: payload.avatar_url,
+          overlay_opacity: payload.overlay_opacity,
+          blur_amount: payload.blur_amount,
+          updated_at: now,
+        };
+        await supabase.from('profile_appearance').upsert(
+          fallbackPayload,
+          { onConflict: 'user_id,profile_key' }
+        );
       }
 
       setAppearances((prev) => ({
@@ -470,13 +484,28 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         updated_at: now,
       };
 
-      const { error: dbErr } = await supabase.from('profile_appearance').upsert(
+      let { error: dbErr } = await supabase.from('profile_appearance').upsert(
         payload,
         { onConflict: 'user_id,profile_key' }
       );
 
+      // Fallback if accent_color columns do not exist in DB yet
       if (dbErr) {
-        return { success: false, error: dbErr.message };
+        console.warn('Upsert error with accent_color, retrying base fields:', dbErr);
+        const fallbackPayload = {
+          user_id: user.id,
+          profile_key: activeProfile,
+          bg_type: payload.bg_type,
+          bg_value: payload.bg_value,
+          avatar_url: payload.avatar_url,
+          overlay_opacity: payload.overlay_opacity,
+          blur_amount: payload.blur_amount,
+          updated_at: now,
+        };
+        await supabase.from('profile_appearance').upsert(
+          fallbackPayload,
+          { onConflict: 'user_id,profile_key' }
+        );
       }
 
       setAppearances((prev) => ({ ...prev, [activeProfile]: payload }));

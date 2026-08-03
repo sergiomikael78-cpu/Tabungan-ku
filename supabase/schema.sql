@@ -74,6 +74,8 @@ CREATE TABLE IF NOT EXISTS profile_appearance (
   profile_key TEXT NOT NULL CHECK (profile_key IN ('Kamu', 'Pacar')),
   bg_type TEXT NOT NULL DEFAULT 'preset' CHECK (bg_type IN ('preset', 'custom')),
   bg_value TEXT NOT NULL DEFAULT '/backgrounds/preset-01.webp',
+  accent_color TEXT DEFAULT NULL,
+  accent_color_secondary TEXT DEFAULT NULL,
   avatar_url TEXT DEFAULT NULL,
   overlay_opacity NUMERIC(3,2) NOT NULL DEFAULT 0.40 CHECK (overlay_opacity >= 0.0 AND overlay_opacity <= 0.9),
   blur_amount INTEGER NOT NULL DEFAULT 12 CHECK (blur_amount >= 0 AND blur_amount <= 30),
@@ -81,6 +83,10 @@ CREATE TABLE IF NOT EXISTS profile_appearance (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (user_id, profile_key)
 );
+
+-- Idempotent column migration in case table was created earlier
+ALTER TABLE profile_appearance ADD COLUMN IF NOT EXISTS accent_color TEXT;
+ALTER TABLE profile_appearance ADD COLUMN IF NOT EXISTS accent_color_secondary TEXT;
 
 
 -- ============================================
