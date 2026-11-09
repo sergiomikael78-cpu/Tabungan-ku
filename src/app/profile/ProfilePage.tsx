@@ -25,6 +25,8 @@ export default function ProfilePage() {
     removeCustomAvatar,
     updateAppearanceEffects,
     setLocalAppearanceEffects,
+    setLocalAppearancePreset,
+    revertLocalAppearance,
   } = useProfile();
   const { signOut, user } = useAuth();
   const { showToast } = useToast();
@@ -145,10 +147,20 @@ export default function ProfilePage() {
 
   const currentActiveName = activeProfile ? getDisplayName(activeProfile) : '';
 
-  const PRESET_LIST = Array.from({ length: 14 }, (_, idx) => {
+  const PRESET_LIST = Array.from({ length: 15 }, (_, idx) => {
     const num = String(idx + 1).padStart(2, '0');
     return `/backgrounds/preset-${num}.webp`;
   });
+
+  const handleSelectPreset = (presetPath: string) => {
+    setSelectedPreset(presetPath);
+    setLocalAppearancePreset(presetPath);
+  };
+
+  const handleClosePresetModal = () => {
+    revertLocalAppearance();
+    setShowPresetModal(false);
+  };
 
   const handleOpacityChange = (newVal: number) => {
     setOpacityVal(newVal);
@@ -162,9 +174,8 @@ export default function ProfilePage() {
 
   const handleSavePreset = async () => {
     setIsSavingPreset(true);
-    const okPreset = await updateAppearancePreset(selectedPreset);
-    const okEffects = await updateAppearanceEffects(opacityVal, blurVal);
-    if (okPreset && okEffects) {
+    const ok = await updateAppearancePreset(selectedPreset, opacityVal, blurVal);
+    if (ok) {
       showToast(`Personalisasi profil ${currentActiveName} berhasil disimpan!`, 'success');
       setShowPresetModal(false);
     } else {
@@ -436,13 +447,13 @@ export default function ProfilePage() {
 
       {/* Modal Ubah Background Preset */}
       {showPresetModal && (
-        <div className="modal-backdrop" onClick={() => setShowPresetModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px', maxHeight: '85vh', overflowY: 'auto' }}>
+        <div className="modal-backdrop" onClick={handleClosePresetModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px', maxHeight: '85vh', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
             <div className="modal-handle" />
             <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '4px' }}>🖼️ Galeri Background Preset</h2>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
               <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                Pilih tema preset atau upload foto Anda sendiri (tersimpan terpisah per profil).
+                Klik preset untuk preview langsung, lalu klik Simpan Background (tersimpan terpisah per profil).
               </p>
             </div>
 
@@ -479,7 +490,7 @@ export default function ProfilePage() {
                 return (
                   <div
                     key={presetPath}
-                    onClick={() => setSelectedPreset(presetPath)}
+                    onClick={() => handleSelectPreset(presetPath)}
                     style={{
                       position: 'relative',
                       aspectRatio: '16/9',
@@ -607,12 +618,25 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '10px' }}>
+            {/* Sticky Action Footer */}
+            <div style={{
+              position: 'sticky',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              paddingTop: '12px',
+              paddingBottom: '4px',
+              background: 'linear-gradient(to top, rgba(17, 26, 22, 0.98) 85%, transparent)',
+              display: 'flex',
+              gap: '10px',
+              marginTop: 'auto',
+              zIndex: 10,
+            }}>
               <button
                 type="button"
                 className="btn btn-secondary"
                 style={{ flex: 1 }}
-                onClick={() => setShowPresetModal(false)}
+                onClick={handleClosePresetModal}
                 disabled={isSavingPreset}
               >
                 Batal

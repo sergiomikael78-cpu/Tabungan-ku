@@ -18,12 +18,14 @@ interface ProfileContextType {
   updateDisplayNames: (kamu: string, pacar: string) => Promise<boolean>;
   appearances: Record<ProfileName, ProfileAppearance>;
   currentAppearance: ProfileAppearance;
-  updateAppearancePreset: (presetUrl: string) => Promise<boolean>;
+  updateAppearancePreset: (presetUrl: string, overlayOpacity?: number, blurAmount?: number) => Promise<boolean>;
   uploadCustomBackground: (file: File) => Promise<{ success: boolean; url?: string; error?: string }>;
   uploadCustomAvatar: (file: File) => Promise<{ success: boolean; url?: string; error?: string }>;
   removeCustomAvatar: () => Promise<boolean>;
   updateAppearanceEffects: (overlayOpacity: number, blurAmount: number) => Promise<boolean>;
   setLocalAppearanceEffects: (overlayOpacity: number, blurAmount: number) => void;
+  setLocalAppearancePreset: (presetUrl: string) => void;
+  revertLocalAppearance: () => void;
 }
 
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
@@ -366,7 +368,11 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const updateAppearancePreset = async (presetUrl: string): Promise<boolean> => {
+  const updateAppearancePreset = async (
+    presetUrl: string,
+    overlayOpacity?: number,
+    blurAmount?: number
+  ): Promise<boolean> => {
     if (!user || !activeProfile) {
       console.error('updateAppearancePreset failed: User or active profile missing');
       return false;
@@ -379,6 +385,9 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       // Extract safe adaptive accent colors
       const extracted = await extractColorsFromImageUrl(presetUrl);
 
+      const finalOpacity = overlayOpacity !== undefined ? overlayOpacity : (current.overlay_opacity ?? 0.40);
+      const finalBlur = blurAmount !== undefined ? blurAmount : (current.blur_amount ?? 12);
+
       const payload = {
         user_id: user.id,
         profile_key: activeProfile,
@@ -387,8 +396,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         accent_color: extracted.accentColor,
         accent_color_secondary: extracted.accentColorSecondary,
         avatar_url: current.avatar_url || null,
-        overlay_opacity: current.overlay_opacity ?? 0.40,
-        blur_amount: current.blur_amount ?? 12,
+        overlay_opacity: finalOpacity,
+        blur_amount: finalBlur,
         updated_at: now,
       };
 
@@ -623,6 +632,39 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     });
   }, [activeProfile, setAppearances]);
 
+  const setLocalAppearancePreset = useCallback((presetUrl: string) => {
+    if (!activeProfile) return;
+    setAppearances((prev) => {
+      const current = prev[activeProfile] || DEFAULT_APPEARANCE[activeProfile];
+      return {
+        ...prev,
+        [activeProfile]: {
+          ...current,
+          bg_value: presetUrl,
+          bg_type: 'preset',
+        },
+      };
+    });
+  }, [activeProfile, setAppearances]);
+
+  const revertLocalAppearance = useCallback(() => {
+    if (!activeProfile) return;
+    const stored = localStorage.getItem(APPEARANCE_STORAGE_KEY);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (parsed && parsed[activeProfile]) {
+          setAppearancesState((prev) => ({
+            ...prev,
+            [activeProfile]: parsed[activeProfile],
+          }));
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }, [activeProfile]);
+
   const updateAppearanceEffects = async (overlayOpacity: number, blurAmount: number): Promise<boolean> => {
     if (!user || !activeProfile) return false;
     try {
@@ -681,6 +723,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         removeCustomAvatar,
         updateAppearanceEffects,
         setLocalAppearanceEffects,
+        setLocalAppearancePreset,
+        revertLocalAppearance,
       }}
     >
       {children}
